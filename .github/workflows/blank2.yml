@@ -19,7 +19,6 @@ jobs:
       - name: Install dependencies
         run: |
           brew install cmake ninja unzip curl zip
-          brew link cmake --force
 
       # 3. Download the Switch2Launcher ZIP
       - name: Download Switch2Launcher ZIP
@@ -66,9 +65,11 @@ jobs:
             -DENABLE_ANALYTICS=NO \
             -DUSE_SYSTEM_LIBS=OFF \
             -DENABLE_TESTS=OFF
-          ninja DolphinCore
-          find . -name "DolphinCore.framework"
-          cp -R $(find . -name "DolphinCore.framework" | head -n 1) ../../Switch2LauncherProject/Switch2Launcher/Frameworks/
+          echo "=== Available Ninja Targets ==="
+          ninja -t targets all
+          echo "=== Building All Targets ==="
+          ninja
+          find . -name "DolphinCore.framework" -exec cp -R {} ../../Switch2LauncherProject/Switch2Launcher/Frameworks/ \;
 
       # 7. Repack updated project ZIP
       - name: Repack Project with DolphinCore
