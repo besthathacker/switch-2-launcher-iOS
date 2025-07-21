@@ -1,10 +1,10 @@
-name: awesome
+name: iOS Build (Switch2Launcher + Dolphin iOS)222
 
 on:
   workflow_dispatch:
 
 permissions:
-  contents: write  # Needed for creating/updating releases
+  contents: write  # Required for creating/updating releases
 
 jobs:
   build:
@@ -39,27 +39,19 @@ jobs:
           git clone https://github.com/OatmealDome/dolphin-ios.git
           cd dolphin-ios
           git submodule update --init --recursive
-          echo "=== Dolphin-iOS repo structure ==="
-          find . -maxdepth 2
 
-      # 6. Build DolphinCore.framework
+      # 6. Build DolphinCore.framework using Xcode
       - name: Build DolphinCore.framework
         run: |
           cd dolphin-ios
-          # Check if Source folder exists (adjust path if needed)
-          if [ -d "Source" ]; then
-            cd Source
-          fi
-          mkdir build_ios
-          cd build_ios
-          cmake .. -GXcode \
-            -DCMAKE_SYSTEM_NAME=iOS \
-            -DCMAKE_OSX_ARCHITECTURES=arm64 \
-            -DDISABLE_PCH=ON \
-            -DENABLE_METAL=ON
-          cmake --build . --config Release
-          mkdir -p ../../../Switch2LauncherProject/Switch2Launcher/Frameworks
-          cp -R Release-iphoneos/DolphinCore.framework ../../../Switch2LauncherProject/Switch2Launcher/Frameworks/
+          chmod +x build.sh
+          ./build.sh ios
+          xcodebuild -workspace build/Dolphin.xcworkspace \
+            -scheme DolphinCore \
+            -sdk iphoneos \
+            -configuration Release
+          mkdir -p ../Switch2LauncherProject/Switch2Launcher/Frameworks
+          cp -R build/Release-iphoneos/DolphinCore.framework ../Switch2LauncherProject/Switch2Launcher/Frameworks/
 
       # 7. Repack updated project ZIP
       - name: Repack Project with DolphinCore
