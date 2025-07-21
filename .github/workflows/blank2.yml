@@ -1,36 +1,123 @@
-# This is a basic workflow to help you get started with Actions
+name: iOS Build (Switch2Launcher + Dolphin)
 
-name: CI
-
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
-jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+permissions:
+  contents: write  # Allows creating/updating releases
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
+jobs:
+  build:
+    runs-on: macos-latest
+
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
-      - name: Upload ZIP to GitHub Release
+      # 1. Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Install required tools
+      - name: Install dependencies
+        run: |
+          brew install cmake ninja unzip curl zip
+
+      # 3. Download the ZIP from your release
+      - name: Download Switch2Launcher ZIP
+        run: |
+          echo "Downloading original Switch2Launcher ZIP..."
+          curl -L -o Switch2Launcher_Xcode_DolphinFull.zip \
+          https://github.com/besthathacker/switch-2-launcher-iOS/releases/download/v1.0.0/Switch2Launcher_Xcode_DolphinFull.zip
+
+      # 4. Unzip the project
+      - name: Unzip Switch2Launcher Project
+        run: |
+          unzip Switch2Launcher_Xcode_DolphinFull.zip -d Switch2LauncherProject
+          ls -R Switch2LauncherProject
+
+      # 5. Clone and build DolphinCore.framework
+      - name: Clone Dolphin iOS
+        run: |
+          git clone https://github.com/oatmealdome/dolphin.git
+          cd dolphin
+          git submodule update --init --recursive
+
+      - name: Build DolphinCore.framework
+        run: |
+          cd dolphin
+          cmake -B build_ios -GXcode \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DDISABLE_PCH=ON \
+            -DENABLE_METAL=ON
+          cmake --build build_ios --config Release
+          mkdir -p ../Switch2LauncherProject/Switch2Launcher/Frameworks
+          cp -R build_ios/Release-iphoneos/DolphinCore.framework ../Switch2LauncherProject/Switch2Launcher/Frameworks/
+
+      # 6. Repack updated project ZIP (with DolphinCore.framework)
+      - name: Repack Project with DolphinCore
+        run: |
+          cd Switch2LauncherProject
+          zip -r ../Switch2Launcher_Xcode_DolphinFull_v1.0.1.zip .
+          cd ..
+
+      # 7. Setup signing
+      - name: Setup Signing
+        run: |
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "$P12_CERT" | base64 --decode > cert.p12
+          echo "$PROVISIONING_PROFILE" | base64 --decode > profile.mobileprovision
+          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+
+          security create-keychain -p github-actions ios-build.keychain
+          security default-keychain -s ios-build.keychain
+          security unlock-keychain -p github-actions ios-build.keychain
+          security import cert.p12 -k ios-build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -k github-actions ios-build.keychain
+
+      # 8. Build and archive
+      - name: Build Archive
+        run: |
+          cd Switch2LauncherProject/Switch2Launcher_Xcode_DolphinFull
+          xcodebuild archive \
+            -scheme Switch2Launcher \
+            -archivePath build/Switch2Launcher.xcarchive \
+            -sdk iphoneos \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Development" \
+            PROVISIONING_PROFILE_SPECIFIER="AdHoc"
+
+      # 9. Export IPA
+      - name: Export IPA
+        run: |
+          cd Switch2LauncherProject/Switch2Launcher_Xcode_DolphinFull
+          xcodebuild -exportArchive \
+            -archivePath build/Switch2Launcher.xcarchive \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath build/ipa
+
+      # 10. Upload to Release v1.0.1
+      - name: Upload IPA and ZIP to v1.0.1 Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v1.0.0
-          name: "Switch2Launcher v1.0.0"
+          tag_name: v1.0.1
+          name: "Switch2Launcher + Dolphin Build v1.0.1"
           draft: false
           prerelease: false
-          files: Switch2Launcher_Xcode_DolphinFull.zip
+          files: |
+            Switch2LauncherProject/Switch2Launcher_Xcode_DolphinFull/build/ipa/Switch2Launcher.ipa
+            Switch2Launcher_Xcode_DolphinFull_v1.0.1.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 11. Update Latest Release Tag
+      - name: Upload IPA and ZIP to Latest Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: latest
+          name: "Switch2Launcher + Dolphin Latest Build"
+          draft: false
+          prerelease: false
+          files: |
+            Switch2LauncherProject/Switch2Launcher_Xcode_DolphinFull/build/ipa/Switch2Launcher.ipa
+            Switch2Launcher_Xcode_DolphinFull_v1.0.1.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
