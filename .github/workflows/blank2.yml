@@ -18,9 +18,8 @@ jobs:
       # 2. Install required tools
       - name: Install dependencies
         run: |
-          brew uninstall cmake -f || true
-          brew install cmake@3.27 ninja unzip curl zip
-          brew link cmake@3.27 --force
+          brew install cmake ninja unzip curl zip
+          brew link cmake --force
 
       # 3. Download the Switch2Launcher ZIP
       - name: Download Switch2Launcher ZIP
