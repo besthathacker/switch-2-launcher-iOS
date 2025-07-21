@@ -1,0 +1,83 @@
+name: iOS Build (Switch2Launcher + Dolphin)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      # 1. Checkout the main repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2. Install build tools
+      - name: Install dependencies
+        run: |
+          brew install cmake ninja unzip
+
+      # 3. Unzip Switch2Launcher project
+      - name: Unzip Switch2Launcher Project
+        run: |
+          unzip Switch2Launcher_Xcode_DolphinFull.zip -d Switch2LauncherProject
+
+      # 4. Clone and build DolphinCore.framework
+      - name: Clone Dolphin iOS
+        run: |
+          git clone https://github.com/oatmealdome/dolphin.git
+          cd dolphin
+          git submodule update --init --recursive
+
+      - name: Build DolphinCore
+        run: |
+          cd dolphin
+          cmake -B build_ios -GXcode \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DDISABLE_PCH=ON \
+            -DENABLE_METAL=ON
+          cmake --build build_ios --config Release
+          mkdir -p ../Switch2LauncherProject/Switch2Launcher/Frameworks
+          cp -R build_ios/Release-iphoneos/DolphinCore.framework ../Switch2LauncherProject/Switch2Launcher/Frameworks/
+
+      # 5. Setup signing
+      - name: Setup Signing
+        run: |
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "$P12_CERT" | base64 --decode > cert.p12
+          echo "$PROVISIONING_PROFILE" | base64 --decode > profile.mobileprovision
+          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+
+          security create-keychain -p github-actions ios-build.keychain
+          security default-keychain -s ios-build.keychain
+          security unlock-keychain -p github-actions ios-build.keychain
+          security import cert.p12 -k ios-build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -k github-actions ios-build.keychain
+
+      # 6. Build and archive
+      - name: Build Archive
+        run: |
+          cd Switch2LauncherProject/Switch2Launcher_Xcode_DolphinFull
+          xcodebuild archive \
+            -scheme Switch2Launcher \
+            -archivePath build/Switch2Launcher.xcarchive \
+            -sdk iphoneos \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Development" \
+            PROVISIONING_PROFILE_SPECIFIER="AdHoc"
+
+      # 7. Export IPA
+      - name: Export IPA
+        run: |
+          cd Switch2LauncherProject/Switch2Launcher_Xcode_DolphinFull
+          xcodebuild -exportArchive \
+            -archivePath build/Switch2Launcher.xcarchive \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath build/ipa
+
+      # 8. Upload IPA
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Switch2Launcher-Dolphin
+          path: Switch2LauncherProject/Switch2Launcher_Xcode_DolphinFull/build/ipa/Switch2Launcher.ipa
