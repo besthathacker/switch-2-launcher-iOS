@@ -59,7 +59,10 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
             -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_C_STANDARD=11 \
             -DCMAKE_CXX_STANDARD=17 \
+            -DCMAKE_C_FLAGS="-std=c11 -D_DARWIN_C_SOURCE=1 -D_FILE_OFFSET_BITS=64" \
+            -DCMAKE_CXX_FLAGS="-std=c++17 -D_DARWIN_C_SOURCE=1 -D_FILE_OFFSET_BITS=64" \
             -DENABLE_VISIBILITY=ON \
             -DENABLE_BITCODE=OFF \
             -DENABLE_ARC=ON \
@@ -71,7 +74,6 @@ jobs:
           echo "=== Available Ninja Targets ==="
           ninja -t targets all | tee ninja_targets.txt
 
-          # Find the best target for DolphinCore
           TARGET=$(grep -E 'Dolphin.*framework|Core.*framework' ninja_targets.txt | head -n 1 | awk '{print $1}')
 
           if [ -z "$TARGET" ]; then
@@ -82,7 +84,14 @@ jobs:
             ninja -v "$TARGET"
           fi
 
-          find . -name "DolphinCore.framework" -exec cp -R {} ../../Switch2LauncherProject/Switch2Launcher/Frameworks/ \;
+          FRAMEWORK_PATH=$(find . -name "DolphinCore.framework" | head -n 1)
+          if [ -z "$FRAMEWORK_PATH" ]; then
+            echo "❌ DolphinCore.framework not found! Build failed."
+            exit 1
+          fi
+
+          echo "✅ Found DolphinCore.framework at: $FRAMEWORK_PATH"
+          cp -R "$FRAMEWORK_PATH" ../../Switch2LauncherProject/Switch2Launcher/Frameworks/
 
       # 7. Repack updated project ZIP
       - name: Repack Project with DolphinCore
