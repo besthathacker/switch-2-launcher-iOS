@@ -42,7 +42,7 @@ jobs:
           echo "=== Dolphin iOS repo structure ==="
           find . -maxdepth 2
 
-      # 6. Build DolphinCore.framework manually (CMake + Ninja)
+      # 6. Build DolphinCore.framework manually from root
       - name: Build DolphinCore.framework (Manual)
         run: |
           cd dolphin-ios
@@ -52,7 +52,7 @@ jobs:
             git clone https://github.com/leetal/ios-cmake.git Externals/ios-cmake
           fi
           mkdir -p build_ios && cd build_ios
-          cmake ../Source \
+          cmake .. \
             -G Ninja \
             -DCMAKE_TOOLCHAIN_FILE=../Externals/ios-cmake/ios.toolchain.cmake \
             -DPLATFORM=OS64 \
@@ -64,7 +64,7 @@ jobs:
             -DENABLE_ANALYTICS=NO \
             -DUSE_SYSTEM_LIBS=OFF \
             -DENABLE_TESTS=OFF
-          ninja
+          ninja DolphinCore
           find . -name "DolphinCore.framework"
           cp -R $(find . -name "DolphinCore.framework" | head -n 1) ../../Switch2LauncherProject/Switch2Launcher/Frameworks/
 
