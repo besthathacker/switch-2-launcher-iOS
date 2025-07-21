@@ -18,7 +18,7 @@ jobs:
       # 2. Install required tools
       - name: Install dependencies
         run: |
-          brew install cmake ninja unzip curl zip
+          brew install cmake ninja unzip curl zip pkg-config sdl2 ffmpeg
 
       # 3. Download the Switch2Launcher ZIP
       - name: Download Switch2Launcher ZIP
@@ -42,7 +42,7 @@ jobs:
           echo "=== Dolphin iOS repo structure ==="
           find . -maxdepth 2
 
-      # 6. Build DolphinCore.framework (Manual)
+      # 6. Configure and build DolphinCore.framework
       - name: Build DolphinCore.framework
         run: |
           cd dolphin-ios
@@ -58,17 +58,30 @@ jobs:
             -DPLATFORM=OS64 \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-            -DIOS=ON \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_CXX_STANDARD=17 \
             -DENABLE_VISIBILITY=ON \
             -DENABLE_BITCODE=OFF \
             -DENABLE_ARC=ON \
+            -DENABLE_X11=OFF \
             -DENABLE_ANALYTICS=NO \
             -DUSE_SYSTEM_LIBS=OFF \
             -DENABLE_TESTS=OFF
+
           echo "=== Available Ninja Targets ==="
-          ninja -t targets all
-          echo "=== Building All Targets ==="
-          ninja
+          ninja -t targets all | tee ninja_targets.txt
+
+          # Find the best target for DolphinCore
+          TARGET=$(grep -E 'Dolphin.*framework|Core.*framework' ninja_targets.txt | head -n 1 | awk '{print $1}')
+
+          if [ -z "$TARGET" ]; then
+            echo "No specific DolphinCore target found. Building all targets..."
+            ninja -v
+          else
+            echo "Building target: $TARGET"
+            ninja -v "$TARGET"
+          fi
+
           find . -name "DolphinCore.framework" -exec cp -R {} ../../Switch2LauncherProject/Switch2Launcher/Frameworks/ \;
 
       # 7. Repack updated project ZIP
@@ -125,3 +138,11 @@ jobs:
             Switch2Launcher_Xcode_DolphinFull_v1.0.1.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 12. Upload Dolphin build logs if failure
+      - name: Upload Dolphin Build Logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dolphin-build-logs
+          path: dolphin-ios/build_ios
