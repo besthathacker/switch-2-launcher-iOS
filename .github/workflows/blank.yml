@@ -15,7 +15,7 @@ jobs:
       # 2. Unzip Switch2Launcher project
       - name: Unzip Switch2Launcher Project
         run: |
-         unzip Switch2Launcher_Xcode_DolphinFull.zip -d Switch2LauncherProject
+         unzip ./Switch2Launcher_Xcode_DolphinFull.zip -d Switch2LauncherProject
 
       # 3. Clone Dolphin iOS
       - name: Clone Dolphin iOS
