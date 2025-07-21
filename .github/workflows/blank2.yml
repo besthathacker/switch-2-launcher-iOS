@@ -1,10 +1,10 @@
-name: iOS Build (Switch2Launcher + Dolphin iOS)222
+name: iOS Build (Switch2Launcher + Dolphin iOS)d
 
 on:
   workflow_dispatch:
 
 permissions:
-  contents: write  # Required for creating/updating releases
+  contents: write
 
 jobs:
   build:
@@ -40,18 +40,14 @@ jobs:
           cd dolphin-ios
           git submodule update --init --recursive
 
-      # 6. Build DolphinCore.framework using Xcode
+      # 6. Build DolphinCore.framework using BuildCore.sh
       - name: Build DolphinCore.framework
         run: |
-          cd dolphin-ios
-          chmod +x build.sh
-          ./build.sh ios
-          xcodebuild -workspace build/Dolphin.xcworkspace \
-            -scheme DolphinCore \
-            -sdk iphoneos \
-            -configuration Release
-          mkdir -p ../Switch2LauncherProject/Switch2Launcher/Frameworks
-          cp -R build/Release-iphoneos/DolphinCore.framework ../Switch2LauncherProject/Switch2Launcher/Frameworks/
+          cd dolphin-ios/Source/iOS/App/Project/Scripts
+          chmod +x BuildCore.sh
+          ./BuildCore.sh
+          # Locate the built framework
+          find ../../../.. -name "DolphinCore.framework" -exec cp -R {} ../../../../../Switch2LauncherProject/Switch2Launcher/Frameworks/ \;
 
       # 7. Repack updated project ZIP
       - name: Repack Project with DolphinCore
@@ -67,7 +63,6 @@ jobs:
           echo "$P12_CERT" | base64 --decode > cert.p12
           echo "$PROVISIONING_PROFILE" | base64 --decode > profile.mobileprovision
           cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
-
           security create-keychain -p github-actions ios-build.keychain
           security default-keychain -s ios-build.keychain
           security unlock-keychain -p github-actions ios-build.keychain
