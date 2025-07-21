@@ -7,23 +7,19 @@ jobs:
   build:
     runs-on: macos-latest
     steps:
-      # 1. Checkout the main repository
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # 2. Install build tools
+      # 1. Install tools
       - name: Install dependencies
         run: |
-          brew install cmake ninja unzip
+         brew install cmake ninja unzip
 
-      # 3. Unzip Switch2Launcher project
+      # 2. Unzip Switch2Launcher project
       - name: Unzip Switch2Launcher Project
         run: |
-          unzip Switch2Launcher_Xcode_DolphinFull.zip -d Switch2LauncherProject
+         unzip Switch2Launcher_Xcode_DolphinFull.zip -d Switch2LauncherProject
 
-      # 4. Clone and build DolphinCore.framework
+      # 3. Clone Dolphin iOS
       - name: Clone Dolphin iOS
         run: |
-          git clone https://github.com/oatmealdome/dolphin.git
-          cd dolphin
-          git submodule update --init --recursive
+         git clone https://github.com/oatmealdome/dolphin.git
+         cd dolphin
+         git submodule update --init --recursive
