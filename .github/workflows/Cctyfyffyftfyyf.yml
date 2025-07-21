@@ -1,0 +1,18 @@
+name: iOS Build (Switch2Launcher + Dolphin)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+      steps:
+      # 1. hi
+      - name: Upload ZIP to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v1.0.0
+          name: "Switch2Launcher v1.0.0"
+          files: ./Switch2Launcher_Xcode_DolphinFull.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
