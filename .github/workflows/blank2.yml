@@ -47,9 +47,9 @@ jobs:
           chmod +x BuildCore.sh
           export PLATFORM_NAME=iphoneos
           export DOL_CORE_BUILD_TARGET=Release
-          export PROJECT_DIR=$PWD
+          export PROJECT_DIR=$(cd ../../.. && pwd) # Points to dolphin-ios/Source
           ./BuildCore.sh
-          find ../../../.. -name "DolphinCore.framework" -exec cp -R {} ../../../../../Switch2LauncherProject/Switch2Launcher/Frameworks/ \;
+          find ../../.. -name "DolphinCore.framework" -exec cp -R {} ../../../Switch2LauncherProject/Switch2Launcher/Frameworks/ \;
 
       # 7. Repack updated project ZIP
       - name: Repack Project with DolphinCore
