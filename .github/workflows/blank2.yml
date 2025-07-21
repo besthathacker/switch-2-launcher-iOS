@@ -1,4 +1,4 @@
-name: iOS Build (Switch2Launcher + Dolphin iOS)d
+name: iOS Build (Switch2Launcher + Dolphin iOS)
 
 on:
   workflow_dispatch:
@@ -33,12 +33,14 @@ jobs:
           unzip Switch2Launcher_Xcode_DolphinFull.zip -d Switch2LauncherProject
           ls -R Switch2LauncherProject
 
-      # 5. Clone Dolphin iOS
+      # 5. Clone Dolphin iOS and initialize submodules
       - name: Clone Dolphin iOS
         run: |
           git clone https://github.com/OatmealDome/dolphin-ios.git
           cd dolphin-ios
           git submodule update --init --recursive
+          echo "=== Dolphin iOS Repo Structure ==="
+          find . -maxdepth 3
 
       # 6. Build DolphinCore.framework using BuildCore.sh
       - name: Build DolphinCore.framework
@@ -47,9 +49,11 @@ jobs:
           chmod +x BuildCore.sh
           export PLATFORM_NAME=iphoneos
           export DOL_CORE_BUILD_TARGET=Release
-          export PROJECT_DIR=$(cd ../ && pwd) # Points to dolphin-ios/Source/iOS/App/Project
+          export PROJECT_DIR=$(cd ../ && pwd)
           ./BuildCore.sh
-          find ../../../../.. -name "DolphinCore.framework" -exec cp -R {} ../../../../../Switch2LauncherProject/Switch2Launcher/Frameworks/ \;
+          echo "=== Searching for DolphinCore.framework ==="
+          find ../../../../.. -name "DolphinCore.framework"
+          cp -R $(find ../../../../.. -name "DolphinCore.framework" | head -n 1) ../../../../../Switch2LauncherProject/Switch2Launcher/Frameworks/
 
       # 7. Repack updated project ZIP
       - name: Repack Project with DolphinCore
