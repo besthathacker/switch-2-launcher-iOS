@@ -1,4 +1,6 @@
-name: iOS Build (Switch2Launcher + Dolphin)
+Run cd dolphin/source
+/Users/runner/work/_temp/e68f9e53-68d7-468c-be45-c1ade23e28af.sh: line 1: cd: dolphin/source: No such file or directory
+Error: Process completed with exit code 1.name: iOS Build (Switch2Launcher + Dolphin)
 
 on:
   workflow_dispatch:
@@ -42,7 +44,7 @@ jobs:
 
       - name: Build DolphinCore.framework
         run: |
-          cd dolphin/source
+          cd dolphin/Source
           cmake -B build_ios -GXcode \
             -DCMAKE_SYSTEM_NAME=iOS \
             -DCMAKE_OSX_ARCHITECTURES=arm64 \
