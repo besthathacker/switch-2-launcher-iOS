@@ -42,7 +42,7 @@ jobs:
 
       - name: Build DolphinCore.framework
         run: |
-          cd dolphin
+          cd dolphin/source
           cmake -B build_ios -GXcode \
             -DCMAKE_SYSTEM_NAME=iOS \
             -DCMAKE_OSX_ARCHITECTURES=arm64 \
