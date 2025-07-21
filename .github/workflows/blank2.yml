@@ -45,7 +45,7 @@ jobs:
         run: |
           cd dolphin-ios/Source/iOS/App/Project/Scripts
           chmod +x BuildCore.sh
-          ./BuildCore.sh
+          ./BuildCore.sh iOS
           # Locate the built framework
           find ../../../.. -name "DolphinCore.framework" -exec cp -R {} ../../../../../Switch2LauncherProject/Switch2Launcher/Frameworks/ \;
 
