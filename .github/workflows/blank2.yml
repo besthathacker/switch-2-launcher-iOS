@@ -24,7 +24,13 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
-
-      - name: Unzip Switch2Launcher Project
-        run: |
-          unzip Switch2Launcher_Xcode_DolphinFull.zip -d Switch2LauncherProject
+      - name: Upload ZIP to GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v1.0.0
+          name: "Switch2Launcher v1.0.0"
+          draft: false
+          prerelease: false
+          files: Switch2Launcher_Xcode_DolphinFull.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
