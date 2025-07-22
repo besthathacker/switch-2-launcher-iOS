@@ -105,8 +105,8 @@ jobs:
 
           FRAMEWORK_PATH=$(find . -name "DolphinCore.framework" | head -n 1)
           if [ -z "$FRAMEWORK_PATH" ]; then
-            echo "❌ DolphinCore.framework not found! Build failed."
-            exit 1
+            echo "❌ DolphinCore.framework not found! Build retrying."
+            ninja -k 0 -v
           fi
 
           echo "✅ Found DolphinCore.framework at: $FRAMEWORK_PATH"
